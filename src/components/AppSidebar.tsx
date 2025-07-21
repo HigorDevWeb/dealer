@@ -44,7 +44,7 @@ import { usePathname } from "next/navigation";
 // Menu items
 const navigationItems = [
   {
-    title: "Agente ITFolks",
+    title: "Agentes DealerSpace",
     url: "/",
     icon: Search,
     tooltip: "Configure e execute buscas personalizadas",
