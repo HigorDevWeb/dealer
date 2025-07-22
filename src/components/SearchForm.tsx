@@ -26,6 +26,43 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+// Tipagem baseada no que vem do Strapi
+interface QuickExample {
+  title: string;
+  description: string;
+  location: string;
+}
+
+interface AgentITFolksContent {
+  mainTitle: string;
+  subtitle: string;
+  searchTitle: string;
+  searchSubtitle: string;
+  groupLabel: string;
+  groupPlaceholder: string;
+  companyLabel: string;
+  companyPlaceholder: string;
+  cityLabel: string;
+  cityPlaceholder: string;
+  stateLabel: string;
+  statePlaceholder: string;
+  searchButton: string;
+  clearButton: string;
+  BuscaPersonalizadaSub?: string;
+  completeLabel?: string;
+  subITFolks?: string;
+  quickExample: QuickExample[];
+  comoFunciona?: {
+    labelComoFunciona: string;
+    discricao: { children: { text: string }[] }[];
+  };
+}
+
+interface SearchFormProps {
+  agentContent: AgentITFolksContent;
+  className?: string;
+}
+
 const ESTADOS_BRASIL = [
   { value: "", label: "Selecione o estado" },
   { value: "AC", label: "Acre" },
@@ -64,33 +101,7 @@ interface FormData {
   estado: string;
 }
 
-const EXAMPLE_DATA = [
-  {
-    grupo: "Empresas de tecnologia",
-    marca: "Microsoft",
-    cidade: "São Paulo",
-    estado: "SP",
-  },
-  {
-    grupo: "Bancos digitais",
-    marca: "Nubank",
-    cidade: "Rio de Janeiro",
-    estado: "RJ",
-  },
-  {
-    grupo: "E-commerce",
-    marca: "Mercado Livre",
-    cidade: "Belo Horizonte",
-    estado: "MG",
-  },
-  { grupo: "Startups", marca: "iFood", cidade: "Curitiba", estado: "PR" },
-];
-
-interface SearchFormProps {
-  className?: string;
-}
-
-export function SearchForm({ className }: SearchFormProps) {
+export function SearchForm({ agentContent}: SearchFormProps) {
   const [formData, setFormData] = useState<FormData>({
     grupo: "",
     marca: "",
@@ -128,8 +139,13 @@ export function SearchForm({ className }: SearchFormProps) {
     return Object.keys(errors).length === 0;
   };
 
-  const fillExample = (example: (typeof EXAMPLE_DATA)[0]) => {
-    setFormData(example);
+  const fillExample = (example: QuickExample) => {
+    setFormData({
+      grupo: example.description,
+      marca: example.title,
+      cidade: example.location.split(",")[0].trim(),
+      estado: example.location.split(",")[1]?.trim() || "",
+    });
     setValidationErrors({});
     toast.success("Exemplo preenchido!", {
       description: "Você pode editar os campos conforme necessário.",
@@ -172,10 +188,8 @@ export function SearchForm({ className }: SearchFormProps) {
         throw new Error(`Erro HTTP: ${response.status}`);
       }
 
-      // Dismiss loading toast
       toast.dismiss(loadingToast);
 
-      // Success toast
       toast.success("🎉 Busca enviada com sucesso!", {
         description:
           "Verifique seu dashboard em alguns minutos para ver os resultados.",
@@ -186,13 +200,10 @@ export function SearchForm({ className }: SearchFormProps) {
         },
       });
 
-      // Limpa o formulário após sucesso
       setFormData({ grupo: "", marca: "", cidade: "", estado: "" });
     } catch (error) {
-      // Dismiss loading toast
       toast.dismiss(loadingToast);
 
-      // Error toast
       toast.error("❌ Erro ao enviar busca", {
         description:
           error instanceof Error
@@ -228,10 +239,10 @@ export function SearchForm({ className }: SearchFormProps) {
               </div>
               <div>
                 <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                  Busca Personalizada
+                  {agentContent.searchTitle}
                 </CardTitle>
                 <CardDescription className="text-base">
-                  Configure sua busca inteligente preenchendo os campos abaixo
+                  {agentContent.searchSubtitle}
                 </CardDescription>
               </div>
             </div>
@@ -240,7 +251,7 @@ export function SearchForm({ className }: SearchFormProps) {
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="px-3 py-1">
                 <Sparkles className="w-3 h-3 mr-1" />
-                {completionPercentage}% completo
+                {completionPercentage}% {agentContent.completeLabel || "completo"}
               </Badge>
             </div>
           </div>
@@ -264,26 +275,24 @@ export function SearchForm({ className }: SearchFormProps) {
                   className="text-sm font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300"
                 >
                   <Users className="h-4 w-4 text-primary" />
-                  Grupo ou Segmento
-                  <span className="text-red-500">*</span>
+                  {agentContent.groupLabel} <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
                     id="grupo"
                     type="text"
-                    placeholder="Ex: Empresas de tecnologia, Startups, Bancos..."
+                    placeholder={agentContent.groupPlaceholder}
                     value={formData.grupo}
                     onChange={(e) => handleInputChange("grupo", e.target.value)}
                     onFocus={() => setFocusedField("grupo")}
                     onBlur={() => setFocusedField(null)}
                     disabled={isLoading}
-                    className={`transition-all duration-200 ${
-                      focusedField === "grupo"
+                    className={`transition-all duration-200 ${focusedField === "grupo"
                         ? "ring-2 ring-primary/50 border-primary"
                         : validationErrors.grupo
-                        ? "ring-2 ring-red-500/50 border-red-500"
-                        : ""
-                    }`}
+                          ? "ring-2 ring-red-500/50 border-red-500"
+                          : ""
+                      }`}
                   />
                   {validationErrors.grupo && (
                     <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
@@ -300,26 +309,24 @@ export function SearchForm({ className }: SearchFormProps) {
                   className="text-sm font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300"
                 >
                   <Building className="h-4 w-4 text-primary" />
-                  Marca ou Empresa
-                  <span className="text-red-500">*</span>
+                  {agentContent.companyLabel} <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
                     id="marca"
                     type="text"
-                    placeholder="Ex: Microsoft, Google, Nubank..."
+                    placeholder={agentContent.companyPlaceholder}
                     value={formData.marca}
                     onChange={(e) => handleInputChange("marca", e.target.value)}
                     onFocus={() => setFocusedField("marca")}
                     onBlur={() => setFocusedField(null)}
                     disabled={isLoading}
-                    className={`transition-all duration-200 ${
-                      focusedField === "marca"
+                    className={`transition-all duration-200 ${focusedField === "marca"
                         ? "ring-2 ring-primary/50 border-primary"
                         : validationErrors.marca
-                        ? "ring-2 ring-red-500/50 border-red-500"
-                        : ""
-                    }`}
+                          ? "ring-2 ring-red-500/50 border-red-500"
+                          : ""
+                      }`}
                   />
                   {validationErrors.marca && (
                     <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
@@ -339,14 +346,13 @@ export function SearchForm({ className }: SearchFormProps) {
                   className="text-sm font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300"
                 >
                   <MapPin className="h-4 w-4 text-primary" />
-                  Cidade
-                  <span className="text-red-500">*</span>
+                  {agentContent.cityLabel} <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
                     id="cidade"
                     type="text"
-                    placeholder="Ex: São Paulo, Rio de Janeiro..."
+                    placeholder={agentContent.cityPlaceholder}
                     value={formData.cidade}
                     onChange={(e) =>
                       handleInputChange("cidade", e.target.value)
@@ -354,13 +360,12 @@ export function SearchForm({ className }: SearchFormProps) {
                     onFocus={() => setFocusedField("cidade")}
                     onBlur={() => setFocusedField(null)}
                     disabled={isLoading}
-                    className={`transition-all duration-200 ${
-                      focusedField === "cidade"
+                    className={`transition-all duration-200 ${focusedField === "cidade"
                         ? "ring-2 ring-primary/50 border-primary"
                         : validationErrors.cidade
-                        ? "ring-2 ring-red-500/50 border-red-500"
-                        : ""
-                    }`}
+                          ? "ring-2 ring-red-500/50 border-red-500"
+                          : ""
+                      }`}
                   />
                   {validationErrors.cidade && (
                     <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
@@ -377,8 +382,7 @@ export function SearchForm({ className }: SearchFormProps) {
                   className="text-sm font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300"
                 >
                   <MapPin className="h-4 w-4 text-primary" />
-                  Estado
-                  <span className="text-red-500">*</span>
+                  {agentContent.stateLabel} <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <select
@@ -390,13 +394,12 @@ export function SearchForm({ className }: SearchFormProps) {
                     onFocus={() => setFocusedField("estado")}
                     onBlur={() => setFocusedField(null)}
                     disabled={isLoading}
-                    className={`w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
-                      focusedField === "estado"
+                    className={`w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${focusedField === "estado"
                         ? "ring-2 ring-primary/50 border-primary"
                         : validationErrors.estado
-                        ? "ring-2 ring-red-500/50 border-red-500"
-                        : "border-input"
-                    }`}
+                          ? "ring-2 ring-red-500/50 border-red-500"
+                          : "border-input"
+                      }`}
                   >
                     {ESTADOS_BRASIL.map((estado) => (
                       <option key={estado.value} value={estado.value}>
@@ -425,12 +428,12 @@ export function SearchForm({ className }: SearchFormProps) {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Enviando busca...
+                    {agentContent.searchButton}
                   </>
                 ) : (
                   <>
                     <Send className="mr-2 h-5 w-5" />
-                    Realizar Busca Inteligente
+                    {agentContent.searchButton}
                   </>
                 )}
               </Button>
@@ -444,63 +447,64 @@ export function SearchForm({ className }: SearchFormProps) {
                 className="h-12 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Limpar
+                {agentContent.clearButton}
               </Button>
             </div>
           </form>
 
           {/* Exemplos rápidos */}
-          <div className="space-y-4 pt-6 border-t border-border/50">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Exemplos rápidos para começar:
-              </h4>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {EXAMPLE_DATA.map((example, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => fillExample(example)}
-                  disabled={isLoading}
-                  className="p-3 text-left rounded-lg border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
-                >
-                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors">
-                    {example.marca}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {example.grupo}
-                  </div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">
-                    {example.cidade}, {example.estado}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Informações adicionais */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-6 border border-blue-200/50 dark:border-blue-800/50">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                  Como funciona sua busca inteligente:
+          {agentContent.quickExample && agentContent.quickExample.length > 0 && (
+            <div className="space-y-4 pt-6 border-t border-border/50">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Exemplos rápidos para começar:
                 </h4>
-                <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                  <li>• Dados processados automaticamente via webhook n8n</li>
-                  <li>• Resultados aparecem no dashboard em 2-5 minutos</li>
-                  <li>
-                    • Sistema otimizado para buscas específicas e direcionadas
-                  </li>
-                  <li>
-                    • Todos os campos são obrigatórios para melhor precisão
-                  </li>
-                </ul>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {agentContent.quickExample.map((example, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => fillExample(example)}
+                    disabled={isLoading}
+                    className="p-3 text-left rounded-lg border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+                  >
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors">
+                      {example.title}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {example.description}
+                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      {example.location}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Informações adicionais */}
+          {agentContent.comoFunciona && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-6 border border-blue-200/50 dark:border-blue-800/50 mt-6">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                    {agentContent.comoFunciona.labelComoFunciona}
+                  </h4>
+                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                    {agentContent.comoFunciona.discricao.map((d, i) => (
+                      <li key={i}>
+                        {d.children.map((c, j) => c.text).join(" ")}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
